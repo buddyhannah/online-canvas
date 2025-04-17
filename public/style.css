@@ -1,0 +1,52 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  #toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    background: #2d2d2eee;
+    padding: 10px 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    font-family: 'Figtree', sans-serif;
+  }
+  #toolbar button,
+  #toolbar input[type="color"],
+  #toolbar input[type="range"] {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s ease;
+    font-family: 'Figtree', sans-serif;
+  }
+  #toolbar button:hover {
+    background-color: #bebfc0;
+    font-family: 'Figtree', sans-serif;
+  }
+  #toolbar input[type="range"] {
+    width: 100px;
+  }
+  
+  button.active {
+    background-color: #bebfc0;
+    box-shadow: inset 4px 2px 4px 2px #7c7c8d;
+  } 
+  
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
