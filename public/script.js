@@ -57,5 +57,37 @@ document.getElementById('clear').addEventListener('click', () => {
   });
   
 
+const socket = io(); // connects to same host
+const username = prompt("Enter your username:");
+const roomId = prompt("Enter room ID:");
+socket.emit('join-room', { roomId, username });
+
+canvas.on('path:created', (e) => {
+  const pathData = e.path.toObject();
+  socket.emit('draw', pathData);
+});
+
+socket.on('draw', (pathData) => {
+  fabric.util.enlivenObjects([pathData], objs => {
+    objs.forEach(o => canvas.add(o));
+  });
+});
+
+socket.on('room-users', (users) => {
+  const userList = document.getElementById('userList');
+  userList.innerHTML = '';
+  users.forEach(u => {
+    const li = document.createElement('li');
+    li.textContent = u.username;
+    userList.appendChild(li);
+  });
+});
+
+socket.on('canvas-init', (paths) => {
+  fabric.util.enlivenObjects(paths, objs => {
+    objs.forEach(o => canvas.add(o));
+  });
+});
+
 canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
 canvas.freeDrawingBrush.color = colorPicker.value;
