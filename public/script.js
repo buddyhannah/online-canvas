@@ -56,11 +56,32 @@ document.getElementById('clear').addEventListener('click', () => {
     canvas.clear();
   });
   
+function parseJWT(token){
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  ).join(''));
 
-const socket = io(); // connects to same host
-const username = prompt("Enter your username:");
+  return JSON.parse(jsonPayload);
+}
+
+const token = localStorage.getItem('token');
+console.log(token)
+if (!token) {
+  location.href = '/login.html';
+}
+
+const userData = parseJWT(token);
+console.log(userData)
+
+//const socket = io()
+const socket = io({ auth: { token } }); // connects to same host
+const username = userData.displayName;
+// const username = prompt("Enter your username:");
 const roomId = prompt("Enter room ID:");
 socket.emit('join-room', { roomId, username });
+
+document.getElementById('usernameDisplay').textContent = `Logged in as: ${username}`;
 
 canvas.on('path:created', (e) => {
   const pathData = e.path.toObject();

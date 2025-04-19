@@ -1,20 +1,46 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const http = require('http');
+const jwt = require('jsonwebtoken');
 
 const socketIO = require('socket.io');
 const app = express();
 
 const server = http.createServer(app);
-const io = socketIO(server)
+
+const JWT_SECRET = 'secret';
+
+const io = socketIO(server,
+  {cors: {
+    origin: "*",
+  }})
 const PORT = 3000;
 
+const authRoutes = require('./routes/auth')
+app.use(express.json());
 app.use(express.static('public'));
+app.use('/api', authRoutes)
 
 const rooms = {} // Stores room state {roomId: [{id, username}]}
 const canvasStates = {} // Canvas states {roomId: [ Fabric objects ]}
 
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  console.log(token)
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    socket.user = payload; // store user info
+    next();
+  } catch (err) {
+    console.log(err)
+    console.log("Unauthorized")
+    next(new Error("Unauthorized"));
+  }
+});
+
 io.on('connection', (socket) => {
   socket.on('join-room', ({roomId, username}) => {
+    console.log(`${username} connected`);
     rooms[roomId] = rooms[roomId] || [];
     canvasStates[roomId] = canvasStates[roomId] || [];
 
@@ -52,6 +78,8 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
-// app.listen(PORT, () => {
-//   console.log(`Server running at http://localhost:${PORT}`);
-// });
+
+mongoose.connect('mongodb://localhost:27017/drawapp').then(() => {
+  console.log('MongoDB connected');
+  app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+});

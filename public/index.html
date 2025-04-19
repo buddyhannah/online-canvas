@@ -1,35 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Drawing Board</title>
-  <link rel="stylesheet" href="style.css">
-  <style>@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Julius+Sans+One&display=swap');</style>
-
-  <!-- FIXME: Might have some problems importing fabric this way server-side -- keep in mind for later -->
-
-
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-
+  <meta charset="UTF-8" />
+  <title>Login / Register</title>
 </head>
 <body>
+  <h2 id="formTitle">Login</h2>
   
-  <div id="toolbar">
-    <button id="draw">✎ DRAW</button>
-    <button id="erase">⨉ ERASE</button>
-    <input type="color" id="colorPicker" value="#000000">
-    <input type="range" id="brushSize" min="1" max="50" value="5">
-    <button id="clear">⌫ CLEAR</button>
-  </div>
+  <form id="authForm">
+    <input name="username" placeholder="Username" required><br>
+    <input name="password" type="password" placeholder="Password" required><br>
+    <button type="submit" id="submitBtn">Login</button>
+  </form>
 
-  <canvas id="c"></canvas>
+  <p>
+    <a href="#" id="toggleMode">Don't have an account? Register here</a>
+  </p>
 
-  <div>
-    <strong>Users in room:</strong>
-    <ul id="userList"></ul>
-  </div>
+  <hr>
+  <a href="/auth/google">Login with Google</a>
 
-  <script src="script.js"></script>
+  <script>
+    let mode = 'login'; // or 'register'
+
+    const toggle = document.getElementById('toggleMode');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('authForm');
+
+    toggle.onclick = () => {
+      mode = mode === 'login' ? 'register' : 'login';
+      formTitle.textContent = mode === 'login' ? 'Login' : 'Register';
+      submitBtn.textContent = mode === 'login' ? 'Login' : 'Register';
+      toggle.textContent = mode === 'login' 
+        ? "Don't have an account? Register here" 
+        : "Already have an account? Login here";
+    };
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      const res = await fetch(`/api/${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+
+      if (result.token) {
+        localStorage.setItem('token', result.token);
+        location.href = '/drawing.html'; // redirect to your app
+      } else {
+        alert(result.error || 'An error occurred');
+      }
+    };
+  </script>
 </body>
 </html>
