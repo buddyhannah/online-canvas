@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Drawing Board</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="styles/style.css">
   <style>@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Julius+Sans+One&display=swap');</style>
 
   <!-- FIXME: Might have some problems importing fabric this way server-side -- keep in mind for later -->
@@ -12,24 +12,28 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 
 </head>
-<body>
+<body>  
+  <div id="mainDisplay">
+    <div id="toolbar">
+      <button id="draw">✎ DRAW</button>
+      <button id="erase">⨉ ERASE</button>
+      <input type="color" id="colorPicker" value="#000000">
+      <input type="range" id="brushSize" min="1" max="50" value="5">
+      <button id="clear">⌫ CLEAR</button>
+      <button id="zoomIn">+</button>
+      <button id="zoomOut">−</button>
+    </div>
+    
+    <div class="canvas-wrapper">
+      <canvas id="c"></canvas>
+    </div>
 
-  <p id="usernameDisplay"></p>
-  
-  <div id="toolbar">
-    <button id="draw">✎ DRAW</button>
-    <button id="erase">⨉ ERASE</button>
-    <input type="color" id="colorPicker" value="#000000">
-    <input type="range" id="brushSize" min="1" max="50" value="5">
-    <button id="clear">⌫ CLEAR</button>
-  </div>
-
-  <canvas id="c"></canvas>
-
-  <!-- Shows all connected users in the room -->
-  <div>
-    <strong>Users in room:</strong>
-    <ul id="userList"></ul>
+    <!-- Shows all connected users in the room -->
+    <div class="user-sidebar">
+      <p id="usernameDisplay"> Sample Text </p>
+      <strong>Users in room:</strong>
+      <ul id="userList"></ul>
+    </div>
   </div>
 
   <script src="script.js"></script>

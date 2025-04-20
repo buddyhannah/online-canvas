@@ -1,0 +1,115 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  #toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    background: #2d2d2eee;
+    padding: 10px 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    font-family: 'Figtree', sans-serif;
+  }
+  
+  #toolbar button,
+  #toolbar input[type="color"],
+  #toolbar input[type="range"] {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s ease;
+    font-family: 'Figtree', sans-serif;
+  }
+  #toolbar button:hover {
+    background-color: #bebfc0;
+    font-family: 'Figtree', sans-serif;
+  }
+  #toolbar input[type="range"] {
+    width: 100px;
+  }
+  #mainDisplay {
+    display: flex;
+    flex-direction: row;
+    padding: 50px;
+  }
+  
+  button.active {
+    background-color: #bebfc0;
+    box-shadow: inset 4px 2px 4px 2px #7c7c8d;
+  } 
+  
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
+  /* Sidebar container */
+.user-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100vh;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-left: 1px solid #000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-shadow: -4px 0 10px rgba(0, 0, 0, 0.05);
+  font-family: 'Figtree', sans-serif;
+}
+
+/* Username display at the top */
+#usernameDisplay {
+  font-family: 'Julius Sans One', sans-serif;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #000;
+  width: 100%;
+  padding-bottom: 0.5rem;
+}
+
+/* User list container */
+#userList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+/* Individual user */
+#userList li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #000;
+  font-size: 0.95rem;
+}
+
+.canvas-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0; /* space for sidebar */
+  bottom: 0;
+  overflow: hidden;
+  background: #fff;
+}
