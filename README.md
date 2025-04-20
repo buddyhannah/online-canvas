@@ -14,7 +14,7 @@ Run the following commands:
 *    Dependencies:
 `npm init -y`
 
-`npm install express`
+`npm install express mongoose bcrypt jsonwebtoken`
 
 *    Server:
 `node server.js`
