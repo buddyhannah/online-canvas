@@ -1,0 +1,47 @@
+<!-- public/lobby.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lobby</title>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Julius+Sans+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/login.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="formTitle">Lobby</h1>
+        <form id="joinForm" onsubmit="return false;">
+            <button type="button" onclick="joinPublic()">Join Public Game</button>
+            <button type="button" onclick="createPrivate()">Create Private Room</button>
+
+            <div class="private-room-row">
+            <input id="joinPin" type="text" placeholder="Room PIN">
+            <button type="button" onclick="joinPrivate()">Join Private Room</button>
+            </div>
+        </form>
+    </div>
+
+  <script>
+    function joinPublic() {
+      localStorage.setItem("roomType", "public");
+      location.href = "/drawing.html";
+    }
+
+    function createPrivate() {
+      localStorage.setItem("roomType", "createPrivate");
+      location.href = "/drawing.html";
+    }
+
+    function joinPrivate() {
+      const pin = document.getElementById('joinPin').value.trim();
+      if (pin) {
+        localStorage.setItem("roomType", "joinPrivate");
+        localStorage.setItem("roomPin", pin);
+        location.href = "/drawing.html";
+      } else {
+        alert("Enter a valid PIN");
+      }
+    }
+  </script>
+</body>
+</html>

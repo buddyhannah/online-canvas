@@ -1,14 +1,20 @@
 const canvas = new fabric.Canvas('c', {fireMiddleClick: true});
 let zoomLevel = 1;
 
+// Set canvas dimensions to full window
 canvas.setHeight(window.innerHeight);
 canvas.setWidth(window.innerWidth);
 canvas.isDrawingMode = true;
 
+// UI Elements
 const drawBtn = document.getElementById('draw');
 const eraseBtn = document.getElementById('erase');
 const colorPicker = document.getElementById('colorPicker');
 const brushSize = document.getElementById('brushSize');
+
+// Set initial brush settings
+canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
+canvas.freeDrawingBrush.color = colorPicker.value;
 
 // Drawing brush
 drawBtn.addEventListener('click', () => {
@@ -90,20 +96,24 @@ function centerViewport() {
   wrapper.scrollTop = (canvas.getHeight() * zoomLevel - wrapper.clientHeight) / 2;
 }
 
+window.onload = () => {
+  centerViewport();
+};
 
 // Samples for scroll and pan taken from here: https://fabricjs.com/docs/old-docs/fabric-intro-part-5/ with minor tweaks
 canvas.on('mouse:wheel', function(opt) {
-  var delta = opt.e.deltaY;
-  var zoom = canvas.getZoom();
+  let delta = opt.e.deltaY;
+  let zoom = canvas.getZoom();
   zoom *= 0.999 ** delta;
-  if (zoom > 3) zoom = 3;
-  if (zoom < 0.2) zoom = 0.2;
-  canvas.setZoom(zoom);
+  zoom = Math.min(3, Math.max(0.2, zoom));
+  zoomLevel = zoom;
+  canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
   opt.e.preventDefault();
   opt.e.stopPropagation();
-})
+});
+
 canvas.on('mouse:down', function(opt) {
-  var evt = opt.e;
+  let evt = opt.e;
   console.log(evt.button);
   if (evt.button == 1) {
     this.isDragging = true;
@@ -115,8 +125,8 @@ canvas.on('mouse:down', function(opt) {
 
 canvas.on('mouse:move', function(opt) {
   if (this.isDragging) {
-    var e = opt.e;
-    var vpt = this.viewportTransform;
+    let e = opt.e;
+    let vpt = this.viewportTransform;
     vpt[4] += e.clientX - this.lastPosX;
     vpt[5] += e.clientY - this.lastPosY;
     this.requestRenderAll();
@@ -130,24 +140,66 @@ canvas.on('mouse:up', function(opt) {
   this.selection = true;
 });
 
+
+
+// Authentication
 const token = localStorage.getItem('token');
 console.log(token)
 if (!token) {
   location.href = '/login.html';
 }
-
 const userData = parseJWT(token);
-console.log(userData)
+const username = userData.displayName;
+document.getElementById('usernameDisplay').textContent = `Logged in as: ${username}`;
 
 //const socket = io()
 const socket = io({ auth: { token } }); // connects to same host
-const username = userData.displayName;
-// const username = prompt("Enter your username:");
-const roomId = prompt("Enter room ID:");
-socket.emit('join-room', { roomId, username });
 
-document.getElementById('usernameDisplay').textContent = `Logged in as: ${username}`;
+const roomType = localStorage.getItem('roomType');
+let roomId;
 
+socket.on('room-error', ({ error }) => {
+  alert(error || "Failed to join room.");
+  location.href = "/lobby.html";
+});
+
+
+socket.on('private-room-created', (pin) => {
+  localStorage.setItem('roomPin', pin);
+  document.getElementById('roomPinDisplay').textContent = `Room PIN: ${pin}`;
+});
+
+
+async function initRoom() {
+  if (roomType === "public") {
+    // Ask server to assign public room
+    socket.emit("join-public", { username });
+  } else if (roomType === "createPrivate") {
+    socket.emit("create-private-room", { username });
+  } else if (roomType === "joinPrivate") {
+    const pin = localStorage.getItem("roomPin");
+    socket.emit("join-private-room", { username, pin });
+  }
+}
+
+socket.on("room-assigned", (id) => {
+  roomId = id;
+  socket.emit('join-room', { roomId, username });
+
+  if (roomType === "joinPrivate") {
+    const pin = localStorage.getItem("roomPin");
+    if (pin) {
+      // Display room pin
+      document.getElementById('roomPinDisplay').textContent = `Room PIN: ${pin}`;
+    }
+  }
+});
+
+
+initRoom();
+
+
+// Drawing sync
 canvas.on('path:created', (e) => {
   const pathData = e.path.toObject();
   socket.emit('draw', pathData);

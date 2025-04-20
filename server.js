@@ -24,6 +24,12 @@ app.use('/api', authRoutes)
 const rooms = {} // Stores room state {roomId: [{id, username}]}
 const canvasStates = {} // Canvas states {roomId: [ Fabric objects ]}
 
+const generateRoomId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
+const MAX_USERS = 2;
+const publicRooms = [];
+const privateRooms = {}; // { pin: roomId }
+
+
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   console.log(token)
@@ -39,14 +45,46 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  socket.on('join-room', ({roomId, username}) => {
-    console.log(`${username} connected`);
+  socket.on('join-public', ({ username }) => {
+    let roomId = publicRooms.find(r => rooms[r] && rooms[r].length < MAX_USERS);
+
+    if (!roomId) {
+      roomId = 'public_' + generateRoomId();
+      publicRooms.push(roomId);
+    }
+
+    socket.emit('room-assigned', roomId);
+  });
+
+  socket.on('create-private-room', ({ username }) => {
+    const pin = generateRoomId();
+    const roomId = 'private_' + pin;
+    privateRooms[pin] = roomId;
+
+    socket.emit('private-room-created', pin);
+    socket.emit('room-assigned', roomId);
+  });
+
+  socket.on('join-private-room', ({ username, pin }) => {
+    const roomId = privateRooms[pin];
+    if (!roomId) {
+      socket.emit('room-error', { error: "Invalid PIN" });
+      return;
+    }
+  
+    if (rooms[roomId] && rooms[roomId].length >= MAX_USERS) {
+      socket.emit('room-error', { error: "Private room is full." });
+      return;
+    }
+
+    socket.emit('room-assigned', roomId);
+  });
+
+  socket.on('join-room', ({ roomId, username }) => {
     rooms[roomId] = rooms[roomId] || [];
     canvasStates[roomId] = canvasStates[roomId] || [];
 
-    // Denies connection
-    // TODO: AS of now this just breaks the app, so fix to requery for a valid roomID
-    if (rooms[roomId].length >= 4) {
+    if (rooms[roomId].length >= MAX_USERS) {
       socket.emit('room-full');
       return;
     }
@@ -54,17 +92,12 @@ io.on('connection', (socket) => {
     rooms[roomId].push({ id: socket.id, username });
     socket.join(roomId);
 
-    socket.join(roomId);
-    console.log(`Client joined room: ${roomId}`);
+    console.log(`User ${username} joined room: ${roomId}`);
 
-    // Notify others
     io.to(roomId).emit('room-users', rooms[roomId]);
-
-    // Send current canvas state to new user
     socket.emit('canvas-init', canvasStates[roomId]);
 
     socket.on('draw', (data) => {
-      // Broadcast to everyone else in the room
       canvasStates[roomId].push(data);
       socket.to(roomId).emit('draw', data);
     });

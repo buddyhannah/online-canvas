@@ -79,3 +79,17 @@ body {
     opacity: 0.7;
   }
   
+  /* For lobby */
+  .private-room-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .private-room-row input {
+    flex: 2;
+  }
+  
+  .private-room-row button {
+    flex: 1;
+  }
+  
