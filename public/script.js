@@ -143,13 +143,18 @@ canvas.on('mouse:up', function(opt) {
 
 
 // Authentication
-const token = localStorage.getItem('token');
+const token = localStorage.getItem('token'); 
+const payload = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
+
+// Display username
+document.getElementById('usernameDisplay').textContent = `Logged in as: ${payload.name || payload.username}`;
+
 console.log(token)
 if (!token) {
   location.href = '/login.html';
 }
 const userData = parseJWT(token);
-const username = userData.displayName;
+const username = userData.name || userData.username; 
 document.getElementById('usernameDisplay').textContent = `Logged in as: ${username}`;
 
 //const socket = io()
@@ -173,18 +178,22 @@ socket.on('private-room-created', (pin) => {
 async function initRoom() {
   if (roomType === "public") {
     // Ask server to assign public room
-    socket.emit("join-public", { username });
+    socket.emit("join-public");
   } else if (roomType === "createPrivate") {
-    socket.emit("create-private-room", { username });
+    socket.emit("create-private-room");
   } else if (roomType === "joinPrivate") {
     const pin = localStorage.getItem("roomPin");
-    socket.emit("join-private-room", { username, pin });
+    socket.emit("join-private-room", { pin });
   }
 }
 
-socket.on("room-assigned", (id) => {
-  roomId = id;
-  socket.emit('join-room', { roomId, username });
+
+socket.on('room-assigned', ({ roomId, username }) => {
+  // Display the username
+  document.getElementById('usernameDisplay').textContent = `Logged in as: ${username}`;
+  
+  // Join the room with the authenticated username
+  socket.emit('join-room', { roomId });
 
   if (roomType === "joinPrivate") {
     const pin = localStorage.getItem("roomPin");

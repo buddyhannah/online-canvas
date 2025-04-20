@@ -1,14 +1,29 @@
+const { OAuth2Client } = require('google-auth-library');
 const express = require('express');
 const mongoose = require('mongoose');
 const http = require('http');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt'); 
+
+
+const GOOGLE_CLIENT_ID = '285764603520-vs2t9u0d04ntigqenoj607dk02iv9i39.apps.googleusercontent.com';
+const JWT_SECRET = 'secret';
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const socketIO = require('socket.io');
 const app = express();
 
-const server = http.createServer(app);
+// User Schema
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  passwordHash: { type: String },
+  email: { type: String, unique: true }
+});
 
-const JWT_SECRET = 'secret';
+
+const User = mongoose.model('User', userSchema);
+
+const server = http.createServer(app);
 
 const io = socketIO(server,
   {cors: {
@@ -16,10 +31,10 @@ const io = socketIO(server,
   }})
 const PORT = 3000;
 
-const authRoutes = require('./routes/auth')
+//const authRoutes = require('./routes/auth')
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/api', authRoutes)
+//app.use('/api', authRoutes)
 
 const rooms = {} // Stores room state {roomId: [{id, username}]}
 const canvasStates = {} // Canvas states {roomId: [ Fabric objects ]}
@@ -29,10 +44,101 @@ const MAX_USERS = 2;
 const publicRooms = [];
 const privateRooms = {}; // { pin: roomId }
 
+// Registration endpoint
+app.post('/api/register', async (req, res) => {
+  const { username, password, email } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
+  }
+
+  try {
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ error: "Username already exists" });
+    }
+
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    const newUser = new User({
+      username,
+      passwordHash,
+      email: email || null
+    });
+
+    await newUser.save();
+
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    
+    res.json({ token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+// Manual login endpoint
+app.post('/api/manual-login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password are required" });
+  }
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+
+    const passwordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordValid) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
+app.post('/api/google-login', async (req, res) => {
+  const { id_token } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: id_token,
+      audience: GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const username = payload.name;
+
+    let user = await User.findOne({ username });
+
+    if (!user) {
+      user = new User({ username, email: payload.email });
+      await user.save();
+    }
+
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ error: 'Invalid ID token' });
+  }
+});
+
+
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  console.log(token)
+  //console.log(token)
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     socket.user = payload; // store user info
@@ -45,7 +151,8 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  socket.on('join-public', ({ username }) => {
+  socket.on('join-public', () => {
+    const username = socket.user.username;
     let roomId = publicRooms.find(r => rooms[r] && rooms[r].length < MAX_USERS);
 
     if (!roomId) {
@@ -53,20 +160,23 @@ io.on('connection', (socket) => {
       publicRooms.push(roomId);
     }
 
-    socket.emit('room-assigned', roomId);
+    socket.emit('room-assigned', { roomId, username });
   });
 
-  socket.on('create-private-room', ({ username }) => {
+  socket.on('create-private-room', () => {
     const pin = generateRoomId();
     const roomId = 'private_' + pin;
     privateRooms[pin] = roomId;
+    const username = socket.user.username;
 
     socket.emit('private-room-created', pin);
-    socket.emit('room-assigned', roomId);
+    socket.emit('room-assigned', { roomId, username });
   });
 
-  socket.on('join-private-room', ({ username, pin }) => {
+  socket.on('join-private-room', ({ pin }) => {
     const roomId = privateRooms[pin];
+    const username = socket.user.username;
+
     if (!roomId) {
       socket.emit('room-error', { error: "Invalid PIN" });
       return;
@@ -77,10 +187,11 @@ io.on('connection', (socket) => {
       return;
     }
 
-    socket.emit('room-assigned', roomId);
+    socket.emit('room-assigned', { roomId, username });
   });
 
-  socket.on('join-room', ({ roomId, username }) => {
+  socket.on('join-room', ({ roomId }) => {
+    const username = socket.user.username;
     rooms[roomId] = rooms[roomId] || [];
     canvasStates[roomId] = canvasStates[roomId] || [];
 
@@ -109,6 +220,8 @@ io.on('connection', (socket) => {
     });
   });
 });
+
+
 
 server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
 

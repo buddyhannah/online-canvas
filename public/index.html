@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <title>Login / Register</title>
+    <!-- For signing in with google -->
+     
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    
     <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Julius+Sans+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/login.css">
 </head>
@@ -20,7 +25,20 @@
   </p>
 
   <hr>
-  <a href="/auth/google">Login with Google</a>
+  <div id="g_id_onload"
+  data-client_id="285764603520-vs2t9u0d04ntigqenoj607dk02iv9i39.apps.googleusercontent.com"
+  data-callback="handleCredentialResponse"
+  data-auto_prompt="false">
+</div>
+
+<div class="g_id_signin"
+  data-type="standard"
+  data-size="large"
+  data-theme="outline"
+  data-text="sign_in_with"
+  data-shape="rectangular"
+  data-logo_alignment="left">
+</div>
 
   <script>
     let mode = 'login'; // or 'register'
@@ -39,25 +57,57 @@
         : "Already have an account? Login here";
     };
 
+    
     form.onsubmit = async (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
 
-      const res = await fetch(`/api/${mode}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      // Determine endpoint based on mode
+      const endpoint = mode === 'login' 
+        ? '/api/manual-login' 
+        : '/api/register';
+      
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
 
-      const result = await res.json();
+        const result = await res.json();
 
-      if (result.token) {
-        localStorage.setItem('token', result.token);
-        location.href = '/lobby.html'; // redirect to lobby page
-      } else {
-        alert(result.error || 'An error occurred');
+        if (!res.ok) {
+          throw new Error(result.error || 'Failed to authenticate');
+        }
+
+        if (result.token) {
+          localStorage.setItem('token', result.token);
+          location.href = '/lobby.html';
+        }
+      } catch (err) {
+        alert(err.message || 'An error occurred');
       }
     };
+
+    // for signing in with google
+    function handleCredentialResponse(response) {
+      fetch('http://localhost:3000/api/google-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id_token: response.credential })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          window.location.href = '/lobby.html';
+        } else {
+          alert('Google login failed');
+        }
+      });
+    }
   </script>
 </body>
 </html>
