@@ -18,7 +18,7 @@ const app = express();
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   passwordHash: { type: String },
-  email: { type: String, unique: true }
+  email: { type: String, unique: true, sparse: true } // Sparse makes email an optional field.
 });
 
 
