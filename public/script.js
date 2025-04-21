@@ -55,7 +55,50 @@ brushSize.addEventListener('input', () => {
 document.getElementById('clear').addEventListener('click', () => {
     canvas.clear();
   });
+
+// Save canvas to image
+document.getElementById('save_to_pc').addEventListener('click', () => {
+	const dataURL = canvas.toDataURL({
+		format: 'png',
+		quality: 1.0
+	});
+
+	// Create a download link
+	const link = document.createElement('a');
+	link.href = dataURL;
+	link.download = 'canvas.png';
+	link.click();
+  });
+
+//Save canvas to database
+document.getElementById('save_to_cloud').addEventListener('click', async () => {
+    const canvasJson = JSON.stringify(canvas.toJSON());
+
+    const response = await fetch('/api/canvas', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ data: canvasJson })
+    });
+
+    const result = await response.json();
+    alert(`Saved! Your canvas ID is: ${result.id}`);
+  });
   
+document.getElementById('load_from_cloud').addEventListener('click', async () => {
+    const id = prompt('Enter the ID of the saved canvas:');
+    if (!id) return;
+
+    const response = await fetch(`/api/canvas/${id}`);
+    if (!response.ok) {
+		alert('Failed to load canvas. Check the ID.');
+		return;
+    }
+
+    const { data } = await response.json();
+    canvas.loadFromJSON(data, () => {
+		canvas.renderAll();
+    });
+});
 
 const socket = io(); // connects to same host
 const username = prompt("Enter your username:");
