@@ -106,14 +106,17 @@ document.getElementById('load_from_cloud').addEventListener('click', async () =>
 
   const response = await fetch(`/api/canvas/${id}`);
   if (!response.ok) {
-  alert('Failed to load canvas. Check the ID.');
-  return;
+    alert('Failed to load canvas. Check the ID.');
+    return;
   }
 
   const { data } = await response.json();
-  canvas.loadFromJSON(data, () => {
-  canvas.renderAll();
+  await canvas.loadFromJSON(data, () => {
+    canvas.renderAll();
   });
+
+  let canvasObjects = canvas.getObjects('path')
+  socket.emit('load_canvas', {room: roomId, canvasObjects})
 });
 
 // Zoom in/out logic
@@ -282,7 +285,14 @@ socket.on('canvas-init', (paths) => {
 });
 
 socket.on('clear', () => {
-  canvas.clear()
+  canvas.clear();
+});
+
+socket.on('load_canvas', (paths) => {
+  canvas.clear();
+  fabric.util.enlivenObjects(paths, objs => {
+    objs.forEach(o => canvas.add(o));
+  });
 });
 
 canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);

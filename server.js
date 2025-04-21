@@ -221,6 +221,13 @@ io.on('connection', (socket) => {
       socket.to(roomId).emit('clear')
     });
 
+    socket.on('load_canvas', (canvasObjects) => {
+      console.log(canvasStates[roomId])
+      canvasStates[roomId] = canvasObjects["canvasObjects"]
+      console.log("HELLO", canvasStates[roomId])
+      socket.to(roomId).emit('load_canvas', canvasStates[roomId])
+    })
+
     socket.on('draw', (data) => {
       canvasStates[roomId].push(data);
       socket.to(roomId).emit('draw', data);
