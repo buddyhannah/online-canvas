@@ -14,7 +14,7 @@ Run the following commands:
 *    Dependencies:
 `npm init -y`
 
-`npm install express mongoose bcrypt jsonwebtoken`
+`npm install express mongoose bcrypt jsonwebtoken google-auth-library`
 
 *    Server:
 `node server.js`
