@@ -10,6 +10,7 @@ const GOOGLE_CLIENT_ID = '285764603520-vs2t9u0d04ntigqenoj607dk02iv9i39.apps.goo
 const JWT_SECRET = 'secret';
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+
 const socketIO = require('socket.io');
 const app = express();
 
@@ -35,6 +36,13 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.static('public'));
 //app.use('/api', authRoutes)
+
+// // TODO: Change this to the db for the actual project -R 4/20/25
+// mongoose.connect('mongodb://localhost:27017/fabricCanvasApp', {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true
+// });
+
 
 const rooms = {} // Stores room state {roomId: [{id, username}]}
 const canvasStates = {} // Canvas states {roomId: [ Fabric objects ]}
@@ -221,11 +229,36 @@ io.on('connection', (socket) => {
   });
 });
 
+// define schema
+const canvasSchema = new mongoose.Schema({
+  data: String
+});
 
+const Canvas = mongoose.model('Canvas', canvasSchema);
+
+// Save canvas (POST)
+app.post('/api/canvas', async (req, res) => {
+  const newCanvas = new Canvas({ data: req.body.data });
+  const savedCanvas = await newCanvas.save();
+  res.json({ id: savedCanvas._id });
+});
+
+// Load canvas by ID (GET)
+app.get('/api/canvas/:id', async (req, res) => {
+  try {
+    const canvas = await Canvas.findById(req.params.id);
+    if (!canvas) return res.status(404).json({ error: 'Canvas not found' });
+    res.json({ data: canvas.data });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid ID format' });
+  }
+});
 
 server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
-
-mongoose.connect('mongodb://localhost:27017/drawapp').then(() => {
-  console.log('MongoDB connected');
-  app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+mongoose.connect('mongodb://localhost:27017/drawapp', { 
+    useNewUrlParser: true,
+    useUnifiedTopology: true}
+  ).then(() => {
+    console.log('MongoDB connected');
+    app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 });
