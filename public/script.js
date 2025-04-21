@@ -60,6 +60,7 @@ brushSize.addEventListener('input', () => {
 // Clear canvas
 document.getElementById('clear').addEventListener('click', () => {
     canvas.clear();
+    socket.emit('clear') // Ensures canvas is cleared for all users in the room
   });
 
 // Save canvas to image
@@ -278,6 +279,10 @@ socket.on('canvas-init', (paths) => {
   fabric.util.enlivenObjects(paths, objs => {
     objs.forEach(o => canvas.add(o));
   });
+});
+
+socket.on('clear', () => {
+  canvas.clear()
 });
 
 canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);

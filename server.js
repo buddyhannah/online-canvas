@@ -216,6 +216,11 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('room-users', rooms[roomId]);
     socket.emit('canvas-init', canvasStates[roomId]);
 
+    socket.on('clear', () => {
+      canvasStates[roomId] = []
+      socket.to(roomId).emit('clear')
+    });
+
     socket.on('draw', (data) => {
       canvasStates[roomId].push(data);
       socket.to(roomId).emit('draw', data);
