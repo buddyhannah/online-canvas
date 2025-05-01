@@ -235,9 +235,29 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
       if (!rooms[roomId]) return;
+    
+      // Remove user from room
       rooms[roomId] = rooms[roomId].filter(u => u.id !== socket.id);
       io.to(roomId).emit('room-users', rooms[roomId]);
+    
+      // If room is empty, clean up
+      if (rooms[roomId].length === 0) {
+        delete rooms[roomId];
+        delete canvasStates[roomId];
+    
+        if (roomId.startsWith('public_')) {
+          const index = publicRooms.indexOf(roomId);
+          if (index !== -1) publicRooms.splice(index, 1);
+        } else if (roomId.startsWith('private_')) {
+          const pin = roomId.split('_')[1];
+          delete privateRooms[pin];
+        }
+    
+        console.log(`Deleted ${roomId}`);
+      }
     });
+
+    
   });
 });
 
