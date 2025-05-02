@@ -44,6 +44,9 @@ const MAX_USERS = 4;
 const publicRooms = [];
 const privateRooms = {}; // { pin: roomId }
 
+const chatHistory = {}; // { roomId: [ { username, message } ] }
+
+
 // Registration endpoint
 app.post('/api/register', async (req, res) => {
   const { username, password, email } = req.body;
@@ -208,6 +211,9 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('room-users', rooms[roomId]);
     socket.emit('canvas-init', canvasStates[roomId]);
 
+    // Display the previous chat messages
+    socket.emit('chat-history', chatHistory[roomId] || []);
+
     socket.on('draw', (data) => {
       canvasStates[roomId].push(data);
       socket.to(roomId).emit('draw', data);
@@ -238,8 +244,6 @@ io.on('connection', (socket) => {
       }
     });
 
-
-
       
     // Chat message sent
     socket.on('chat-message', (message) => {
@@ -249,7 +253,17 @@ io.on('connection', (socket) => {
       );
       if (userRoom) {
         const roomId = userRoom[0];
-        io.to(roomId).emit('chat-message', { username, message });
+        const chatEntry = { username, message };
+
+        chatHistory[roomId] = chatHistory[roomId] || [];
+
+        // Only store the latest 20 chats
+        chatHistory[roomId].push(chatEntry);
+        if (chatHistory[roomId].length > 20) {
+          chatHistory[roomId].shift();
+        }
+
+        io.to(roomId).emit('chat-message', chatEntry);
       }
     });
 

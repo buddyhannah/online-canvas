@@ -289,13 +289,26 @@ const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const chatSend = document.getElementById('chat-send');
 
-chatSend.addEventListener('click', () => {
+function sendMessage(){
   const msg = chatInput.value.trim();
   if (msg) {
     socket.emit('chat-message', msg);
     chatInput.value = '';
+    chatInput.focus();
+  }
+}
+
+chatSend.addEventListener('click', () => {
+  sendMessage();
+});
+
+chatInput.addEventListener('keydown', function (event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    sendMessage();
   }
 });
+
 
 socket.on('chat-message', ({ username, message }) => {
   const msgElem = document.createElement('div');
@@ -303,3 +316,14 @@ socket.on('chat-message', ({ username, message }) => {
   chatMessages.appendChild(msgElem);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
+
+
+socket.on('chat-history', (messages) => {
+  messages.forEach(({ username, message }) => {
+    const msgElem = document.createElement('div');
+    msgElem.textContent = `${username}: ${message}`;
+    chatMessages.appendChild(msgElem);
+  });
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
