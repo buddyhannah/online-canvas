@@ -63,16 +63,17 @@ body, html {
   position: fixed;
   top: 0;
   right: 0;
-  width: 200px;
+  width: 240px;
   height: 100vh;
   padding: 1rem;
   background-color: #ffffff;
   border-left: 1px solid #000;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  box-shadow: -4px 0 10px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box; 
+  overflow: hidden; 
   font-family: 'Figtree', sans-serif;
+
 }
 
 /* Username display at the top */
@@ -94,7 +95,8 @@ body, html {
   margin: 0;
   width: 100%;
   overflow-y: auto;
-  flex-grow: 1;
+  flex: 1; 
+  min-height: 0; 
 }
 
 /* Individual user */
@@ -108,8 +110,95 @@ body, html {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0; /* space for sidebar */
+  right: 0; 
   bottom: 0;
   overflow: hidden;
   background: #fff;
+}
+
+
+/* Chatbox */
+#chat {
+  width: 100%;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1; 
+  min-height: 0; 
+  box-sizing: border-box;
+}
+
+#chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden; 
+  border: 1px solid #ccc;
+  padding: 5px;
+  margin-bottom: 0.5rem;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  word-wrap: break-word; 
+  white-space: pre-wrap;
+  min-height: 0;
+}
+
+#chat-input-container {
+  display: flex;
+  width: 100%;
+  gap: 5px; 
+  box-sizing: border-box; 
+  padding-right: 0; 
+}
+
+#chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+#chat-input,
+#chat-send {
+  font-family: 'Figtree', sans-serif;
+  font-size: 14px;
+}
+
+#chat-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box; 
+}
+
+#chat-send {
+  flex-shrink: 0; 
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background-color: #2d2d2e;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#chat-send:hover {
+  background-color: #444;
+}
+
+#chat form,
+#chat-input-container {
+  display: flex;
+  width: 100%;
 }

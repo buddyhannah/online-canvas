@@ -32,14 +32,24 @@
     </div>
 
     <!-- Shows all connected users in the room -->
-    <div class="user-sidebar">
+  <div class="user-sidebar">
+    <div class="sidebar-content">
       <!--Show private lobby join code-->
       <p id="roomPinDisplay" style="font-weight: bold; font-size: 1.1em;"></p> 
       <p id="usernameDisplay"> Sample Text </p>
       <strong>Users in room:</strong>
       <ul id="userList"></ul>
     </div>
-  </div>
+
+    <!-- Chat box-->
+    <div id="chat">
+      <div id="chat-messages"></div>
+      <div id="chat-input-container">
+        <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+</div>
 
   <script src="script.js"></script>
 </body>

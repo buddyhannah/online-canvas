@@ -40,7 +40,7 @@ const rooms = {} // Stores room state {roomId: [{id, username}]}
 const canvasStates = {} // Canvas states {roomId: [ Fabric objects ]}
 
 const generateRoomId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
-const MAX_USERS = 2;
+const MAX_USERS = 4;
 const publicRooms = [];
 const privateRooms = {}; // { pin: roomId }
 
@@ -213,11 +213,46 @@ io.on('connection', (socket) => {
       socket.to(roomId).emit('draw', data);
     });
 
+   
     socket.on('disconnect', () => {
       if (!rooms[roomId]) return;
+
+      // Remove user from room
       rooms[roomId] = rooms[roomId].filter(u => u.id !== socket.id);
       io.to(roomId).emit('room-users', rooms[roomId]);
+
+      // If room is empty, clean up
+      if (rooms[roomId].length === 0) {
+        delete rooms[roomId];
+        delete canvasStates[roomId];
+
+        if (roomId.startsWith('public_')) {
+          const index = publicRooms.indexOf(roomId);
+          if (index !== -1) publicRooms.splice(index, 1);
+        } else if (roomId.startsWith('private_')) {
+          const pin = roomId.split('_')[1];
+          delete privateRooms[pin];
+        }
+
+        console.log(`Deleted ${roomId}`);
+      }
     });
+
+
+
+      
+    // Chat message sent
+    socket.on('chat-message', (message) => {
+      const username = socket.user.username;
+      const userRoom = Object.entries(rooms).find(([roomId, users]) =>
+        users.some(u => u.id === socket.id)
+      );
+      if (userRoom) {
+        const roomId = userRoom[0];
+        io.to(roomId).emit('chat-message', { username, message });
+      }
+    });
+
   });
 });
 
@@ -252,3 +287,5 @@ mongoose.connect('mongodb://localhost:27017/drawapp').then(() => {
   console.log('MongoDB connected');
   //app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 });
+
+

@@ -281,3 +281,25 @@ socket.on('canvas-init', (paths) => {
 
 canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
 canvas.freeDrawingBrush.color = colorPicker.value;
+
+
+
+// chat box
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+
+chatSend.addEventListener('click', () => {
+  const msg = chatInput.value.trim();
+  if (msg) {
+    socket.emit('chat-message', msg);
+    chatInput.value = '';
+  }
+});
+
+socket.on('chat-message', ({ username, message }) => {
+  const msgElem = document.createElement('div');
+  msgElem.textContent = `${username}: ${message}`;
+  chatMessages.appendChild(msgElem);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
