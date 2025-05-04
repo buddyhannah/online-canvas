@@ -27,6 +27,9 @@ const userSchema = new mongoose.Schema({
 
 
 const clearVotes = {}; // { roomId: Set of usernames who voted to clear }
+const clearVoteSessions = {}; // { [roomId]: { voters: Set<socket.id>, voteCount: number } }
+
+
 
 
 const User = mongoose.model('User', userSchema);
@@ -230,45 +233,59 @@ io.on('connection', (socket) => {
 
     // for clearing 
     socket.on('request-clear', () => {
-      clearVotes[roomId].add(socket.id); 
-
-      const totalUsers = rooms[roomId].length;
-      const votes = clearVotes[roomId].size;
+      const userIds = rooms[roomId].map(s => s.id); // get current user IDs in room
+      clearVoteSessions[roomId] = {
+        voters: new Set(userIds),
+        voteCount: 1
+      };
+      clearVotes[roomId] = new Set([socket.id]);
     
-      socket.broadcast.to(roomId).emit('confirm-clear-request'); // Ask others to confirm
+      // Ask others to confirm
+      socket.broadcast.to(roomId).emit('confirm-clear-request');
     
-      // If everyone agrees, clear canvas
-      if (votes === totalUsers) {
+      // Notify all of vote status
+      io.to(roomId).emit('clear-vote-update', {
+        totalVotes: 1,
+        totalUsers: userIds.length
+      });
+    
+      if (userIds.length === 1) {
+        // Auto-clear if only one person
         canvasStates[roomId] = [];
-        io.to(roomId).emit('clear-canvas'); 
+        io.to(roomId).emit('clear-canvas');
+        delete clearVoteSessions[roomId];
         clearVotes[roomId].clear();
       }
     });
     
+    
     socket.on('confirm-clear-vote', (confirmed) => {
-      if (confirmed) {
-        clearVotes[roomId].add(socket.id);
-      } else {
-        // If anyone votes no, cancel the clear
+      const session = clearVoteSessions[roomId];
+      if (!session || !session.voters.has(socket.id)) return; // Ignore latecomers
+    
+      if (!confirmed) {
         io.to(roomId).emit('clear-canceled');
+        delete clearVoteSessions[roomId];
         clearVotes[roomId].clear();
         return;
       }
     
-      const totalUsers = rooms[roomId].length;
-      const votes = clearVotes[roomId].size;
+      clearVotes[roomId].add(socket.id);
+      session.voteCount = clearVotes[roomId].size;
     
       io.to(roomId).emit('clear-vote-update', {
-        totalVotes: votes,
-        totalUsers
+        totalVotes: session.voteCount,
+        totalUsers: session.voters.size
       });
     
-      if (votes === totalUsers) {
+      if (session.voteCount === session.voters.size) {
         canvasStates[roomId] = [];
         io.to(roomId).emit('clear-canvas');
+        delete clearVoteSessions[roomId];
         clearVotes[roomId].clear();
       }
     });
+    
     
     socket.on('cancel-clear-vote', () => {
       clearVotes[roomId].delete(socket.user.username);
@@ -278,6 +295,7 @@ io.on('connection', (socket) => {
     });
     
    
+  
     socket.on('disconnect', () => {
       if (!rooms[roomId]) return;
 
@@ -305,6 +323,12 @@ io.on('connection', (socket) => {
       }
     });
 
+    if (clearVoteSessions[roomId]) {
+      io.to(roomId).emit('clear-canceled');
+      delete clearVoteSessions[roomId];
+      clearVotes[roomId].clear();
+    }
+    
       
     // Chat message sent
     socket.on('chat-message', (message) => {
