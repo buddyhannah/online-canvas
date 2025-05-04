@@ -373,7 +373,6 @@ toolbar.addEventListener('touchmove', (e) => {
 // Clear canvas button
 document.getElementById('clear').addEventListener('click', () => {
   socket.emit('request-clear');
-  alert("Request made to clear the canvas. Waiting for others to confirm.");
 });
 
 // Handle confirmation request (for other users)
@@ -404,6 +403,10 @@ socket.on('clear-canceled', () => {
   const confirmDiv = document.getElementById('customConfirm');
   confirmDiv.style.display = 'none';
   alert(`Clear request canceled.`);
+});
+
+socket.on('waiting-for-confirmation' ,() =>{
+  alert(`Request made to clear the canvas. Waiting for others to confirm.`);
 });
 
 // Handle successful clear

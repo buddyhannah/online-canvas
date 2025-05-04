@@ -240,22 +240,25 @@ io.on('connection', (socket) => {
       };
       clearVotes[roomId] = new Set([socket.id]);
     
-      // Ask others to confirm
-      socket.broadcast.to(roomId).emit('confirm-clear-request');
-    
-      // Notify all of vote status
-      io.to(roomId).emit('clear-vote-update', {
-        totalVotes: 1,
-        totalUsers: userIds.length
-      });
-    
+
       if (userIds.length === 1) {
         // Auto-clear if only one person
         canvasStates[roomId] = [];
         io.to(roomId).emit('clear-canvas');
         delete clearVoteSessions[roomId];
         clearVotes[roomId].clear();
+      
+      }else{
+        // Ask others to confirm
+        socket.broadcast.to(roomId).emit('confirm-clear-request');
+        socket.emit('waiting-for-confirmation');
+
       }
+
+     
+    
+     
+
     });
     
     
