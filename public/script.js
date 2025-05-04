@@ -327,3 +327,49 @@ socket.on('chat-history', (messages) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
+// Horizontal scrolling 
+const toolbar = document.getElementById('toolbar');
+let isDown = false;
+let startX;
+let scrollLeft;
+
+toolbar.addEventListener('mousedown', (e) => {
+  isDown = true;
+  startX = e.pageX - toolbar.offsetLeft;
+  scrollLeft = toolbar.scrollLeft;
+});
+
+toolbar.addEventListener('mouseleave', () => {
+  isDown = false;
+});
+
+toolbar.addEventListener('mouseup', () => {
+  isDown = false;
+});
+
+toolbar.addEventListener('mousemove', (e) => {
+  if(!isDown) return;
+  e.preventDefault();
+  const x = e.pageX - toolbar.offsetLeft;
+  const walk = (x - startX) * 2;
+  toolbar.scrollLeft = scrollLeft - walk;
+});
+
+// Touch support for mobile
+toolbar.addEventListener('touchstart', (e) => {
+  isDown = true;
+  startX = e.touches[0].pageX - toolbar.offsetLeft;
+  scrollLeft = toolbar.scrollLeft;
+});
+
+toolbar.addEventListener('touchend', () => {
+  isDown = false;
+});
+
+toolbar.addEventListener('touchmove', (e) => {
+  if(!isDown) return;
+  const x = e.touches[0].pageX - toolbar.offsetLeft;
+  const walk = (x - startX) * 2;
+  toolbar.scrollLeft = scrollLeft - walk;
+});
+

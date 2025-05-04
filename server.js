@@ -18,7 +18,11 @@ const app = express();
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   passwordHash: { type: String },
-  email: { type: String, unique: true }
+  email: { 
+    type: String, 
+    unique: true,
+    sparse: true // This allows multiple null values
+  }
 });
 
 
@@ -67,7 +71,7 @@ app.post('/api/register', async (req, res) => {
     const newUser = new User({
       username,
       passwordHash,
-      email: email || null
+      email: email || undefined 
     });
 
     await newUser.save();
