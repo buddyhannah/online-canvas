@@ -57,12 +57,6 @@ brushSize.addEventListener('input', () => {
 });
 
 
-// Clear canvas
-document.getElementById('clear').addEventListener('click', () => {
-    canvas.clear();
-    socket.emit('clear') // Ensures canvas is cleared for all users in the room
-  });
-
 // Save canvas to image
 document.getElementById('save_to_pc').addEventListener('click', () => {
 	const dataURL = canvas.toDataURL({
@@ -137,11 +131,29 @@ window.addEventListener('load', () => {
   setTimeout(centerViewport, 100); // slight delay to ensure layout
 });
 
+window.addEventListener('resize', handleResize);
+function handleResize() {
+  // Update canvas dimensions
+  canvas.setHeight(window.innerHeight);
+  canvas.setWidth(window.innerWidth);
+  
+  // Recenter the viewport
+  centerViewport();
+  
+  // Force a re-render
+  canvas.renderAll();
+}
+
 // Center canvas when zoomed
 function centerViewport() {
   const wrapper = document.querySelector('.canvas-wrapper');
-  wrapper.scrollLeft = (canvas.getWidth() * zoomLevel - wrapper.clientWidth) / 2;
-  wrapper.scrollTop = (canvas.getHeight() * zoomLevel - wrapper.clientHeight) / 2;
+  if (!wrapper) return;
+  
+  const canvasWidth = canvas.getWidth() * zoomLevel;
+  const canvasHeight = canvas.getHeight() * zoomLevel;
+  
+  wrapper.scrollLeft = (canvasWidth - wrapper.clientWidth) / 2;
+  wrapper.scrollTop = (canvasHeight - wrapper.clientHeight) / 2;
 }
 
 window.onload = () => {
@@ -254,6 +266,21 @@ socket.on('room-assigned', ({ roomId, username }) => {
 
 
 initRoom();
+document.getElementById('load_from_cloud').addEventListener('click', async () => {
+    const id = prompt('Enter the ID of the saved canvas:');
+    if (!id) return;
+
+    const response = await fetch(`/api/canvas/${id}`);
+    if (!response.ok) {
+		alert('Failed to load canvas. Check the ID.');
+		return;
+    }
+
+    const { data } = await response.json();
+    canvas.loadFromJSON(data, () => {
+		canvas.renderAll();
+    });
+});
 
 
 // Drawing sync
@@ -297,3 +324,152 @@ socket.on('load_canvas', (paths) => {
 
 canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
 canvas.freeDrawingBrush.color = colorPicker.value;
+
+
+
+// chat box
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+
+function sendMessage(){
+  const msg = chatInput.value.trim();
+  if (msg) {
+    socket.emit('chat-message', msg);
+    chatInput.value = '';
+    chatInput.focus();
+  }
+}
+
+chatSend.addEventListener('click', () => {
+  sendMessage();
+});
+
+chatInput.addEventListener('keydown', function (event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
+
+socket.on('chat-message', ({ username, message }) => {
+  const msgElem = document.createElement('div');
+  msgElem.textContent = `${username}: ${message}`;
+  chatMessages.appendChild(msgElem);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+
+socket.on('chat-history', (messages) => {
+  messages.forEach(({ username, message }) => {
+    const msgElem = document.createElement('div');
+    msgElem.textContent = `${username}: ${message}`;
+    chatMessages.appendChild(msgElem);
+  });
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+// Horizontal scrolling 
+const toolbar = document.getElementById('toolbar');
+let isDown = false;
+let startX;
+let scrollLeft;
+
+toolbar.addEventListener('mousedown', (e) => {
+  isDown = true;
+  startX = e.pageX - toolbar.offsetLeft;
+  scrollLeft = toolbar.scrollLeft;
+});
+
+toolbar.addEventListener('mouseleave', () => {
+  isDown = false;
+});
+
+toolbar.addEventListener('mouseup', () => {
+  isDown = false;
+});
+
+toolbar.addEventListener('mousemove', (e) => {
+  if(!isDown) return;
+  e.preventDefault();
+  const x = e.pageX - toolbar.offsetLeft;
+  const walk = (x - startX) * 2;
+  toolbar.scrollLeft = scrollLeft - walk;
+});
+
+// Touch support for mobile
+toolbar.addEventListener('touchstart', (e) => {
+  isDown = true;
+  startX = e.touches[0].pageX - toolbar.offsetLeft;
+  scrollLeft = toolbar.scrollLeft;
+});
+
+toolbar.addEventListener('touchend', () => {
+  isDown = false;
+});
+
+toolbar.addEventListener('touchmove', (e) => {
+  if(!isDown) return;
+  const x = e.touches[0].pageX - toolbar.offsetLeft;
+  const walk = (x - startX) * 2;
+  toolbar.scrollLeft = scrollLeft - walk;
+});
+
+
+
+// Clear canvas button
+document.getElementById('clear').addEventListener('click', () => {
+  socket.emit('request-clear');
+});
+
+// Handle confirmation request (for other users)
+socket.on('confirm-clear-request', () => {
+  const confirmDiv = document.getElementById('customConfirm');
+  const message = document.getElementById('confirmMessage');
+  message.textContent = 'Clear canvas?';
+  
+  confirmDiv.style.display = 'block';
+  
+  return new Promise((resolve) => {
+    document.getElementById('confirmYes').onclick = () => {
+      confirmDiv.style.display = 'none';
+      socket.emit('confirm-clear-vote', true);
+      resolve(true);
+    };
+    
+    document.getElementById('confirmNo').onclick = () => {
+      confirmDiv.style.display = 'none';
+      socket.emit('confirm-clear-vote', false);
+      resolve(false);
+    };
+  });
+});
+
+// Handle clear cancellation
+socket.on('clear-canceled', () => {
+  const confirmDiv = document.getElementById('customConfirm');
+  confirmDiv.style.display = 'none';
+  alert(`Clear request canceled.`);
+});
+
+socket.on('waiting-for-confirmation' ,() =>{
+  alert(`Request made to clear the canvas. Waiting for others to confirm.`);
+});
+
+// Handle successful clear
+socket.on('clear-canvas', ()=> {
+  clearCanvas();
+  alert(`Canvas cleared!`);
+});
+
+// Canvas clearing function
+function clearCanvas() {
+  canvas.clear();
+  canvas.isDrawingMode = true;
+  canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
+  canvas.freeDrawingBrush.color = colorPicker.value;
+  centerViewport();
+}
+
+

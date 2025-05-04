@@ -85,3 +85,28 @@ body {
     flex: 1;
   }
   
+/* for mobile */
+  @media (max-width: 800px) {
+    body {
+      padding: 1rem;
+      height: auto;
+      justify-content: flex-start;
+    }
+  
+    .container {
+      max-width: 90%;
+      padding: 1.5rem;
+      box-shadow: none;
+      border: none;
+    }
+  
+    h1 {
+      font-size: 1.5rem;
+    }
+  
+    input,
+    button {
+      font-size: 0.95rem;
+      padding: 0.6rem;
+    }
+  }
