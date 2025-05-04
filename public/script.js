@@ -112,11 +112,29 @@ window.addEventListener('load', () => {
   setTimeout(centerViewport, 100); // slight delay to ensure layout
 });
 
+window.addEventListener('resize', handleResize);
+function handleResize() {
+  // Update canvas dimensions
+  canvas.setHeight(window.innerHeight);
+  canvas.setWidth(window.innerWidth);
+  
+  // Recenter the viewport
+  centerViewport();
+  
+  // Force a re-render
+  canvas.renderAll();
+}
+
 // Center canvas when zoomed
 function centerViewport() {
   const wrapper = document.querySelector('.canvas-wrapper');
-  wrapper.scrollLeft = (canvas.getWidth() * zoomLevel - wrapper.clientWidth) / 2;
-  wrapper.scrollTop = (canvas.getHeight() * zoomLevel - wrapper.clientHeight) / 2;
+  if (!wrapper) return;
+  
+  const canvasWidth = canvas.getWidth() * zoomLevel;
+  const canvasHeight = canvas.getHeight() * zoomLevel;
+  
+  wrapper.scrollLeft = (canvasWidth - wrapper.clientWidth) / 2;
+  wrapper.scrollTop = (canvasHeight - wrapper.clientHeight) / 2;
 }
 
 window.onload = () => {
@@ -423,3 +441,5 @@ function clearCanvas() {
   canvas.freeDrawingBrush.color = colorPicker.value;
   centerViewport();
 }
+
+
