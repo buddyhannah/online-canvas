@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema({
 });
 
 
+const clearVotes = {}; // { roomId: Set of usernames who voted to clear }
+
+
 const User = mongoose.model('User', userSchema);
 
 const server = http.createServer(app);
@@ -200,6 +203,7 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ roomId }) => {
     const username = socket.user.username;
     rooms[roomId] = rooms[roomId] || [];
+    clearVotes[roomId] = new Set();
     canvasStates[roomId] = canvasStates[roomId] || [];
 
     if (rooms[roomId].length >= MAX_USERS) {
@@ -223,6 +227,56 @@ io.on('connection', (socket) => {
       socket.to(roomId).emit('draw', data);
     });
 
+
+    // for clearing 
+    socket.on('request-clear', () => {
+      clearVotes[roomId].add(socket.id); 
+
+      const totalUsers = rooms[roomId].length;
+      const votes = clearVotes[roomId].size;
+    
+      socket.broadcast.to(roomId).emit('confirm-clear-request'); // Ask others to confirm
+    
+      // If everyone agrees, clear canvas
+      if (votes === totalUsers) {
+        canvasStates[roomId] = [];
+        io.to(roomId).emit('clear-canvas'); 
+        clearVotes[roomId].clear();
+      }
+    });
+    
+    socket.on('confirm-clear-vote', (confirmed) => {
+      if (confirmed) {
+        clearVotes[roomId].add(socket.id);
+      } else {
+        // If anyone votes no, cancel the clear
+        io.to(roomId).emit('clear-canceled');
+        clearVotes[roomId].clear();
+        return;
+      }
+    
+      const totalUsers = rooms[roomId].length;
+      const votes = clearVotes[roomId].size;
+    
+      io.to(roomId).emit('clear-vote-update', {
+        totalVotes: votes,
+        totalUsers
+      });
+    
+      if (votes === totalUsers) {
+        canvasStates[roomId] = [];
+        io.to(roomId).emit('clear-canvas');
+        clearVotes[roomId].clear();
+      }
+    });
+    
+    socket.on('cancel-clear-vote', () => {
+      clearVotes[roomId].delete(socket.user.username);
+      const votes = clearVotes[roomId].size;
+      const totalUsers = rooms[roomId].length;
+      io.to(roomId).emit('clear-vote-update', { totalVotes: votes, totalUsers });
+    });
+    
    
     socket.on('disconnect', () => {
       if (!rooms[roomId]) return;
@@ -235,6 +289,9 @@ io.on('connection', (socket) => {
       if (rooms[roomId].length === 0) {
         delete rooms[roomId];
         delete canvasStates[roomId];
+        delete clearVotes[roomId];
+        delete chatHistory[roomId];
+
 
         if (roomId.startsWith('public_')) {
           const index = publicRooms.indexOf(roomId);

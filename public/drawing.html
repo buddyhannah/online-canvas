@@ -15,12 +15,23 @@
 </head>
 <body>  
   <div id="mainDisplay">
+    <div id="customConfirm" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;z-index:1000;border:1px solid #ccc;">
+      <p id="confirmMessage"></p>
+      <button id="confirmYes">Yes</button>
+      <button id="confirmNo">No</button>
+    </div>
+    
     <div id="toolbar">
       <button id="draw">✎ DRAW</button>
       <button id="erase">⨉ ERASE</button>
       <input type="color" id="colorPicker" value="#000000">
       <input type="range" id="brushSize" min="1" max="50" value="5">
       <button id="clear">⌫ CLEAR</button>
+      <div id="clear-vote-status" style="display: none;">
+        <p>Clear canvas? <span id="vote-count">0/0</span> users agreed.</p>
+        <button id="confirm-clear">Yes, Clear</button>
+        <button id="cancel-clear">Cancel</button>
+      </div>
       <button id="zoomIn">+</button>
       <button id="zoomOut">−</button>
       <button id="save_to_pc">SAVE TO PC</button>

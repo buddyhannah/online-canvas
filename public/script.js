@@ -57,11 +57,6 @@ brushSize.addEventListener('input', () => {
 });
 
 
-// Clear canvas
-document.getElementById('clear').addEventListener('click', () => {
-    canvas.clear();
-  });
-
 // Save canvas to image
 document.getElementById('save_to_pc').addEventListener('click', () => {
 	const dataURL = canvas.toDataURL({
@@ -373,3 +368,55 @@ toolbar.addEventListener('touchmove', (e) => {
   toolbar.scrollLeft = scrollLeft - walk;
 });
 
+
+
+// Clear canvas button
+document.getElementById('clear').addEventListener('click', () => {
+  socket.emit('request-clear');
+  alert("Request made to clear the canvas. Waiting for others to confirm.");
+});
+
+// Handle confirmation request (for other users)
+socket.on('confirm-clear-request', () => {
+  const confirmDiv = document.getElementById('customConfirm');
+  const message = document.getElementById('confirmMessage');
+  message.textContent = 'Clear canvas?';
+  
+  confirmDiv.style.display = 'block';
+  
+  return new Promise((resolve) => {
+    document.getElementById('confirmYes').onclick = () => {
+      confirmDiv.style.display = 'none';
+      socket.emit('confirm-clear-vote', true);
+      resolve(true);
+    };
+    
+    document.getElementById('confirmNo').onclick = () => {
+      confirmDiv.style.display = 'none';
+      socket.emit('confirm-clear-vote', false);
+      resolve(false);
+    };
+  });
+});
+
+// Handle clear cancellation
+socket.on('clear-canceled', () => {
+  const confirmDiv = document.getElementById('customConfirm');
+  confirmDiv.style.display = 'none';
+  alert(`Clear request canceled.`);
+});
+
+// Handle successful clear
+socket.on('clear-canvas', ()=> {
+  clearCanvas();
+  alert(`Canvas cleared!`);
+});
+
+// Canvas clearing function
+function clearCanvas() {
+  canvas.clear();
+  canvas.isDrawingMode = true;
+  canvas.freeDrawingBrush.width = parseInt(brushSize.value, 10);
+  canvas.freeDrawingBrush.color = colorPicker.value;
+  centerViewport();
+}
