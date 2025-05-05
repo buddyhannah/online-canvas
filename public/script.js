@@ -59,7 +59,21 @@ brushSize.addEventListener('input', () => {
 
 // Save canvas to image
 document.getElementById('save_to_pc').addEventListener('click', () => {
-	const dataURL = canvas.toDataURL({
+  // Create a temororary canvas to add a white background to any downloaded image
+  const tempCanvas = document.createElement('canvas');
+  const ctx = tempCanvas.getContext('2d');
+
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+
+  // Fill background with white
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+  // Draw Fabric canvas onto it
+  ctx.drawImage(canvas.lowerCanvasEl, 0, 0);
+
+	const dataURL = tempCanvas.toDataURL({
 		format: 'png',
 		quality: 1.0
 	});
