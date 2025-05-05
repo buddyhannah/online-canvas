@@ -29,9 +29,6 @@ const userSchema = new mongoose.Schema({
 const clearVotes = {}; // { roomId: Set of usernames who voted to clear }
 const clearVoteSessions = {}; // { [roomId]: { voters: Set<socket.id>, voteCount: number } }
 
-
-
-
 const User = mongoose.model('User', userSchema);
 
 const server = http.createServer(app);
@@ -385,6 +382,13 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('chat-message', chatEntry);
       }
     });
+
+
+    socket.on('load_canvas', (canvasObjects) => {
+      console.log(canvasStates[roomId])
+      canvasStates[roomId] = canvasObjects["canvasObjects"]
+      socket.to(roomId).emit('load_canvas', canvasStates[roomId])
+    })
     
 
   });
@@ -392,6 +396,8 @@ io.on('connection', (socket) => {
 
 // define schema
 const canvasSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  owner: {type: mongoose.SchemaTypes.ObjectId, ref: 'User'},
   data: String
 });
 
@@ -404,7 +410,10 @@ app.post('/api/logout', (req, res) => {
 
 // Save canvas (POST)
 app.post('/api/canvas', async (req, res) => {
-  const newCanvas = new Canvas({ data: req.body.data });
+  search_name = req.body.user;
+  const user = await User.findOne({username: search_name});
+
+  const newCanvas = new Canvas({name: req.body.name, owner: user._id, data: req.body.data });
   const savedCanvas = await newCanvas.save();
   res.json({ id: savedCanvas._id });
 });
@@ -417,6 +426,19 @@ app.get('/api/canvas/:id', async (req, res) => {
     res.json({ data: canvas.data });
   } catch (error) {
     res.status(400).json({ error: 'Invalid ID format' });
+  }
+});
+
+// Get all canvases associated with a specific user
+app.get('/api/canvases/:user', async (req, res) => {
+  try {
+    console.log(req.params.user)
+    const user = await User.findOne({username: req.params.user});
+    const canvases = await Canvas.find({owner: user._id})
+    res.json(canvases)
+  } catch (error) {
+    console.log(req.params)
+    res.status(400).json({ error: 'Invalid User'});
   }
 });
 

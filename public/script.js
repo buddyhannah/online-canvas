@@ -1,5 +1,6 @@
 const canvas = new fabric.Canvas('c', {fireMiddleClick: true});
 let zoomLevel = 1;
+let selectedId = '';
 
 // Set canvas dimensions to full window
 canvas.setHeight(window.innerHeight);
@@ -87,16 +88,46 @@ document.getElementById('save_to_pc').addEventListener('click', () => {
 
 //Save canvas to database
 document.getElementById('save_to_cloud').addEventListener('click', async () => {
-    const canvasJson = JSON.stringify(canvas.toJSON());
+    const saveDiv = document.getElementById('save_to_cloud_confirm');
+    const message = document.getElementById('saveMessage');
+    message.textContent = 'Enter a file name';
+    
+    saveDiv.style.display = 'flex';
+    
+    return new Promise((resolve) => {
+      document.getElementById('save').onclick = async () => {
+        let file_name = document.getElementById("save_name").value;
+        console.log(file_name);
 
-    const response = await fetch('/api/canvas', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ data: canvasJson })
+        if (file_name == ""){
+          message.textContent = "Enter a valid file name.";
+          return;
+        }
+
+        saveDiv.style.display = 'none';
+
+        let user_name = payload.name || payload.username;
+        console.log(user_name)
+        
+        const canvasJson = JSON.stringify(canvas.toJSON());
+
+        const response = await fetch('/api/canvas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({user: user_name, name: file_name, data: canvasJson })
+        });
+
+        const result = await response.json();
+        alert(`Saved! Your canvas ID is: ${result.id}`);
+
+        resolve(true);
+      };
+      
+      document.getElementById('cancel').onclick = () => {
+        saveDiv.style.display = 'none';
+        resolve(false);
+      };
     });
-
-    const result = await response.json();
-    alert(`Saved! Your canvas ID is: ${result.id}`);
   });
   
 function parseJWT(token){
@@ -108,23 +139,67 @@ function parseJWT(token){
   return JSON.parse(jsonPayload);
 }
 
+
+document.getElementById('canvasSelect').addEventListener('change', (e) => {
+  selectedId = e.target.value;
+});
+
 document.getElementById('load_from_cloud').addEventListener('click', async () => {
-  const id = prompt('Enter the ID of the saved canvas:');
-  if (!id) return;
+  let name = payload.name || payload.username;
+  console.log(name)
+  const res = await fetch(`/api/canvases/${name}`); // assumes user is already authenticated
+  const canvases = await res.json();
+  console.log(canvases)
 
-  const response = await fetch(`/api/canvas/${id}`);
-  if (!response.ok) {
-    alert('Failed to load canvas. Check the ID.');
-    return;
-  }
+  const load_menu = document.getElementById('load_menu')
 
-  const { data } = await response.json();
-  await canvas.loadFromJSON(data, () => {
-    canvas.renderAll();
+  const select = document.getElementById('canvasSelect');
+  select.innerHTML = ''; // clear previous options
+
+  canvases.forEach(c => {
+    const option = document.createElement('option');
+    console.log(c)
+    option.value = c._id;
+    option.textContent = c.name;
+    select.appendChild(option);
   });
 
-  let canvasObjects = canvas.getObjects('path')
-  socket.emit('load_canvas', {room: roomId, canvasObjects})
+  if (select.childElementCount > 0){
+    selectedId = select.children[0].value
+  }
+
+  load_menu.style.display = 'block';
+
+
+  return new Promise((resolve) => {
+    document.getElementById('load').onclick = async () => {
+      const id = selectedId
+      console.log(id)
+      const response = await fetch(`/api/canvas/${id}`);
+      if (!response.ok){
+        alert('Failed to load canvas. Check the ID.');
+        return;
+      }
+
+      const { data } = await response.json();
+      await canvas.loadFromJSON(data, () => {
+        canvas.renderAll();
+      });
+
+      let canvasObjects = canvas.getObjects('path')
+      socket.emit('load_canvas', {room: roomId, canvasObjects})
+
+      load_menu.style.display = 'none';
+      resolve(true);
+    };
+    
+    document.getElementById('cancelLoad').onclick = () => {
+      load_menu.style.display = 'none';
+      resolve(false);
+    };
+  });
+
+
 });
 
 // Zoom in/out logic -- buttons deprecated but keeping for future reference as of now
@@ -296,21 +371,21 @@ socket.on('room-assigned', ({ roomId, username }) => {
 
 
 initRoom();
-document.getElementById('load_from_cloud').addEventListener('click', async () => {
-    const id = prompt('Enter the ID of the saved canvas:');
-    if (!id) return;
+// document.getElementById('load_from_cloud').addEventListener('click', async () => {
+//     const id = prompt('Enter the ID of the saved canvas:');
+//     if (!id) return;
 
-    const response = await fetch(`/api/canvas/${id}`);
-    if (!response.ok) {
-		alert('Failed to load canvas. Check the ID.');
-		return;
-    }
+//     const response = await fetch(`/api/canvas/${id}`);
+//     if (!response.ok) {
+// 		alert('Failed to load canvas. Check the ID.');
+// 		return;
+//     }
 
-    const { data } = await response.json();
-    canvas.loadFromJSON(data, () => {
-		canvas.renderAll();
-    });
-});
+//     const { data } = await response.json();
+//     canvas.loadFromJSON(data, () => {
+// 		canvas.renderAll();
+//     });
+// });
 
 
 // Drawing sync
