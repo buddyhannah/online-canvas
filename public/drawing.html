@@ -16,10 +16,17 @@
 </head>
 <body>
   <div id="mainDisplay">
-    <div id="customConfirm" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;z-index:1000;border:1px solid #ccc;">
+    <div id="customConfirm">
       <p id="confirmMessage"></p>
-      <button id="confirmYes">Yes</button>
-      <button id="confirmNo">No</button>
+      <div id="optionWrapper">
+        <button id="confirmYes">Yes</button>
+        <button id="confirmNo">No</button>
+      </div>
+    </div>
+
+    <div id="customAlert">
+      <p id="alertMessage"></p>
+      <button id="confirm">Ok</button>
     </div>
 
     <div id="zoomWrapper">

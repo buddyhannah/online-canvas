@@ -459,7 +459,7 @@ socket.on('confirm-clear-request', () => {
   const message = document.getElementById('confirmMessage');
   message.textContent = 'Clear canvas?';
   
-  confirmDiv.style.display = 'block';
+  confirmDiv.style.display = 'flex';
   
   return new Promise((resolve) => {
     document.getElementById('confirmYes').onclick = () => {
@@ -480,17 +480,50 @@ socket.on('confirm-clear-request', () => {
 socket.on('clear-canceled', () => {
   const confirmDiv = document.getElementById('customConfirm');
   confirmDiv.style.display = 'none';
-  alert(`Clear request canceled.`);
+  // alert(`Clear request canceled.`);
+  const custAlert = document.getElementById('customAlert')
+  const message = document.getElementById('alertMessage');
+  message.textContent = "Clear request canceled"
+  custAlert.style.display = 'flex';
+
+  return new Promise((resolve) => {
+    document.getElementById('confirm').onclick = () => {
+      custAlert.style.display = 'none';
+      resolve(true);
+    };
+  });
 });
 
 socket.on('waiting-for-confirmation' ,() =>{
-  alert(`Request made to clear the canvas. Waiting for others to confirm.`);
+  // alert(`Request made to clear the canvas. Waiting for others to confirm.`);
+  const custAlert = document.getElementById('customAlert')
+  const message = document.getElementById('alertMessage');
+  message.textContent = "Request made to clear the canvas. Waiting for others to confirm."
+  custAlert.style.display = 'flex';
+
+  return new Promise((resolve) => {
+    document.getElementById('confirm').onclick = () => {
+      custAlert.style.display = 'none';
+      resolve(true);
+    };
+  });
 });
 
 // Handle successful clear
 socket.on('clear-canvas', ()=> {
   clearCanvas();
-  alert(`Canvas cleared!`);
+  // alert(`Canvas cleared!`);
+  const custAlert = document.getElementById('customAlert')
+  const message = document.getElementById('alertMessage');
+  message.textContent = "Canvas cleared!"
+  custAlert.style.display = 'flex';
+
+  return new Promise((resolve) => {
+    document.getElementById('confirm').onclick = () => {
+      custAlert.style.display = 'none';
+      resolve(true);
+    };
+  });
 });
 
 // Canvas clearing function
