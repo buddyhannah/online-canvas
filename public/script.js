@@ -113,18 +113,31 @@ document.getElementById('load_from_cloud').addEventListener('click', async () =>
   socket.emit('load_canvas', {room: roomId, canvasObjects})
 });
 
-// Zoom in/out logic
-document.getElementById('zoomIn').onclick = () => {
-  zoomLevel = Math.min(zoomLevel + 0.1, 3); // max 300%
-  canvas.setZoom(zoomLevel);
-  centerViewport();
-};
+// Zoom in/out logic -- buttons deprecated but keeping for future reference as of now
+// document.getElementById('zoomIn').onclick = () => {
+//   zoomLevel = Math.min(zoomLevel + 0.1, 3); // max 300%
+//   canvas.setZoom(zoomLevel);
+//   centerViewport();
+// };
 
-document.getElementById('zoomOut').onclick = () => {
-  zoomLevel = Math.max(zoomLevel - 0.1, 0.2); // min 20%
-  canvas.setZoom(zoomLevel);
-  centerViewport();
-};
+// document.getElementById('zoomOut').onclick = () => {
+//   zoomLevel = Math.max(zoomLevel - 0.1, 0.2); // min 20%
+//   canvas.setZoom(zoomLevel);
+//   centerViewport();
+// };
+
+// Adds zoom listener to the slider
+document.getElementById('zoomSlider').addEventListener('input', (event) => {
+  zoomLevel = parseFloat(event.target.value);
+
+  // Clamp zoom levels between 20% and 300%
+  zoomLevel = Math.max(zoomLevel, 0.2)
+  zoomLevel = Math.min(zoomLevel, 3)
+
+  console.log(zoomLevel)
+
+  canvas.setZoom(zoomLevel)
+})
 
 // Center canvas on load
 window.addEventListener('load', () => {
@@ -167,6 +180,9 @@ canvas.on('mouse:wheel', function(opt) {
   zoom *= 0.999 ** delta;
   zoom = Math.min(3, Math.max(0.2, zoom));
   zoomLevel = zoom;
+
+  document.getElementById('zoomSlider').value = zoomLevel
+
   canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
   opt.e.preventDefault();
   opt.e.stopPropagation();

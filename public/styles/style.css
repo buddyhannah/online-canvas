@@ -6,7 +6,7 @@ body, html {
     display: flex;
     flex-direction: column;
   }
-  
+
   #toolbar {
     display: flex;
     gap: 10px;
@@ -24,7 +24,7 @@ body, html {
   
   #toolbar button,
   #toolbar input[type="color"],
-  #toolbar input[type="range"] {
+  #toolbar #brushSize {
     padding: 6px 10px;
     border: none;
     border-radius: 6px;
@@ -37,7 +37,7 @@ body, html {
     background-color: #bebfc0;
     font-family: 'Figtree', sans-serif;
   }
-  #toolbar input[type="range"] {
+  #toolbar #brushSize {
     width: 100px;
   }
   #mainDisplay {
@@ -207,6 +207,33 @@ body {
   width: 100%;
 }
 
+/* Rules for the zoom slider */
+#zoomWrapper {
+  position: absolute;
+  top: 160px;
+  left: 25px;
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  align-items: center;
+  background: #2d2d2eee;
+  border-radius: 12px;
+  padding: 3px;
+}
+#zoomWrapper p {
+  background: white;
+  font-weight: 900;
+  font-size: 20px;
+  padding: 3px;
+  border-radius: 12px;
+}
+#zoomSlider {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  cursor: pointer;
+  appearance: slider-vertical;
+  width: 16px;
+}
 
 /* Resize for mobile */
 @media (max-width: 800px) {
@@ -318,7 +345,7 @@ body {
 
   #toolbar button,
   #toolbar input[type="color"],
-  #toolbar input[type="range"] {
+  #toolbar #brushSize {
     flex: 0 0 auto; 
     padding: 8px 12px;
     font-size: 14px;
