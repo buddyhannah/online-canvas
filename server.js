@@ -415,6 +415,7 @@ app.post('/api/canvas', async (req, res) => {
   let savedCanvas;
 
   console.log(req.body.overwrite)
+  
   if (!req.body.overwrite){
     const newCanvas = new Canvas({name: req.body.name, owner: user._id, data: req.body.data });
     savedCanvas = await newCanvas.save();
@@ -443,7 +444,11 @@ app.get('/api/check/:file_name', async (req, res) => {
   try {
     const canvas = await Canvas.find({name: req.params.file_name});
     let found_canvas = null;
-    if (canvas) found_canvas = canvas;
+
+    // TODO: This should check if canvas is even an array too
+    if (canvas && canvas.length != 0) {
+      found_canvas = canvas;
+    }
     res.json({ data: found_canvas });
   } catch (error) {
     res.status(400).json({ error: 'Invalid file name error' });

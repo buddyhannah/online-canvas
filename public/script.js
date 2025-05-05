@@ -109,7 +109,8 @@ document.getElementById('save_to_cloud').addEventListener('click', async () => {
         let check = await fetch(`/api/check/${file_name}`)
         found_canvas = await check.json();
 
-        if (found_canvas.data != null && !overwrite){
+        console.log(found_canvas.data)
+        if ( (found_canvas.data != null && found_canvas.data != []) && !overwrite){
           console.log(overwrite);
           message.textContent = "File already exists. Overwrite anyway?";
           overwrite = true;
