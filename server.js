@@ -412,9 +412,19 @@ app.post('/api/logout', (req, res) => {
 app.post('/api/canvas', async (req, res) => {
   search_name = req.body.user;
   const user = await User.findOne({username: search_name});
+  let savedCanvas;
 
-  const newCanvas = new Canvas({name: req.body.name, owner: user._id, data: req.body.data });
-  const savedCanvas = await newCanvas.save();
+  console.log(req.body.overwrite)
+  if (!req.body.overwrite){
+    const newCanvas = new Canvas({name: req.body.name, owner: user._id, data: req.body.data });
+    savedCanvas = await newCanvas.save();
+  }
+  else{
+    await Canvas.replaceOne({name: req.body.name}, {name: req.body.name, owner: user._id, data: req.body.data })
+    console.log("replaced")
+    savedCanvas = await Canvas.findOne({name: req.body.name});
+  }
+
   res.json({ id: savedCanvas._id });
 });
 
@@ -426,6 +436,17 @@ app.get('/api/canvas/:id', async (req, res) => {
     res.json({ data: canvas.data });
   } catch (error) {
     res.status(400).json({ error: 'Invalid ID format' });
+  }
+});
+
+app.get('/api/check/:file_name', async (req, res) => {
+  try {
+    const canvas = await Canvas.find({name: req.params.file_name});
+    let found_canvas = null;
+    if (canvas) found_canvas = canvas;
+    res.json({ data: found_canvas });
+  } catch (error) {
+    res.status(400).json({ error: 'Invalid file name error' });
   }
 });
 

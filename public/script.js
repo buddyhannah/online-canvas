@@ -95,12 +95,24 @@ document.getElementById('save_to_cloud').addEventListener('click', async () => {
     saveDiv.style.display = 'flex';
     
     return new Promise((resolve) => {
+      let overwrite = false
+
       document.getElementById('save').onclick = async () => {
         let file_name = document.getElementById("save_name").value;
         console.log(file_name);
 
         if (file_name == ""){
           message.textContent = "Enter a valid file name.";
+          return;
+        }
+
+        let check = await fetch(`/api/check/${file_name}`)
+        found_canvas = await check.json();
+
+        if (found_canvas.data != null && !overwrite){
+          console.log(overwrite);
+          message.textContent = "File already exists. Overwrite anyway?";
+          overwrite = true;
           return;
         }
 
@@ -114,7 +126,7 @@ document.getElementById('save_to_cloud').addEventListener('click', async () => {
         const response = await fetch('/api/canvas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({user: user_name, name: file_name, data: canvasJson })
+          body: JSON.stringify({user: user_name, name: file_name, data: canvasJson, overwrite: overwrite })
         });
 
         const result = await response.json();
