@@ -5,7 +5,8 @@
   <title>Drawing Board</title>
   <link rel="stylesheet" href="styles/style.css">
   <style>@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Julius+Sans+One&display=swap');</style>
-
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- FIXME: Might have some problems importing fabric this way server-side -- keep in mind for later -->
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -14,19 +15,28 @@
 </head>
 <body>  
   <div id="mainDisplay">
+    <div id="customConfirm" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;z-index:1000;border:1px solid #ccc;">
+      <p id="confirmMessage"></p>
+      <button id="confirmYes">Yes</button>
+      <button id="confirmNo">No</button>
+    </div>
+    
     <div id="toolbar">
       <button id="draw">✎ DRAW</button>
       <button id="erase">⨉ ERASE</button>
       <input type="color" id="colorPicker" value="#000000">
       <input type="range" id="brushSize" min="1" max="50" value="5">
       <button id="clear">⌫ CLEAR</button>
-
+      <div id="clear-vote-status" style="display: none;">
+        <p>Clear canvas? <span id="vote-count">0/0</span> users agreed.</p>
+        <button id="confirm-clear">Yes, Clear</button>
+        <button id="cancel-clear">Cancel</button>
+      </div>
+      <button id="zoomIn">+</button>
+      <button id="zoomOut">−</button>
       <button id="save_to_pc">SAVE TO PC</button>
       <button id="save_to_cloud">SAVE TO CLOUD</button>
       <button id="load_from_cloud">LOAD FROM CLOUD</button>
-
-      <button id="zoomIn">+</button>
-      <button id="zoomOut">−</button>
     </div>
     
     <div class="canvas-wrapper">
@@ -34,14 +44,30 @@
     </div>
 
     <!-- Shows all connected users in the room -->
-    <div class="user-sidebar">
+  <div class="user-sidebar">
+    <div class="sidebar-content">
+      <!--Logout/quit buttons-->
+      <div class="sidebar-buttons-container">
+        <button id="quitRoom" class="sidebar-button">Quit</button>
+        <button id="logout" class="sidebar-button">Logout</button>
+      </div>
+    
       <!--Show private lobby join code-->
       <p id="roomPinDisplay" style="font-weight: bold; font-size: 1.1em;"></p> 
       <p id="usernameDisplay"> Sample Text </p>
       <strong>Users in room:</strong>
       <ul id="userList"></ul>
     </div>
-  </div>
+
+    <!-- Chat box-->
+    <div id="chat">
+      <div id="chat-messages"></div>
+      <div id="chat-input-container">
+        <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
+        <button id="chat-send">Send</button>
+      </div>
+    </div>
+</div>
 
   <script src="script.js"></script>
 </body>

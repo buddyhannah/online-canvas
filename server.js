@@ -18,8 +18,18 @@ const app = express();
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   passwordHash: { type: String },
-  email: { type: String, unique: true, sparse: true } // Sparse makes email an optional field.
+  email: { 
+    type: String, 
+    unique: true,
+    sparse: true // This allows multiple null values
+  }
 });
+
+
+const clearVotes = {}; // { roomId: Set of usernames who voted to clear }
+const clearVoteSessions = {}; // { [roomId]: { voters: Set<socket.id>, voteCount: number } }
+
+
 
 
 const User = mongoose.model('User', userSchema);
@@ -32,25 +42,20 @@ const io = socketIO(server,
   }})
 const PORT = 3000;
 
-//const authRoutes = require('./routes/auth')
 app.use(express.json());
 app.use(express.static('public'));
-//app.use('/api', authRoutes)
-
-// // TODO: Change this to the db for the actual project -R 4/20/25
-// mongoose.connect('mongodb://localhost:27017/fabricCanvasApp', {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true
-// });
 
 
 const rooms = {} // Stores room state {roomId: [{id, username}]}
 const canvasStates = {} // Canvas states {roomId: [ Fabric objects ]}
 
 const generateRoomId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
-const MAX_USERS = 2;
+const MAX_USERS = 4;
 const publicRooms = [];
 const privateRooms = {}; // { pin: roomId }
+
+const chatHistory = {}; // { roomId: [ { username, message } ] }
+
 
 // Registration endpoint
 app.post('/api/register', async (req, res) => {
@@ -72,7 +77,7 @@ app.post('/api/register', async (req, res) => {
     const newUser = new User({
       username,
       passwordHash,
-      // email: email || null
+      email: email || undefined 
     });
 
     await newUser.save();
@@ -201,6 +206,7 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ roomId }) => {
     const username = socket.user.username;
     rooms[roomId] = rooms[roomId] || [];
+    clearVotes[roomId] = new Set();
     canvasStates[roomId] = canvasStates[roomId] || [];
 
     if (rooms[roomId].length >= MAX_USERS) {
@@ -216,35 +222,100 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('room-users', rooms[roomId]);
     socket.emit('canvas-init', canvasStates[roomId]);
 
-    socket.on('clear', () => {
-      canvasStates[roomId] = []
-      socket.to(roomId).emit('clear')
-    });
-
-    socket.on('load_canvas', (canvasObjects) => {
-      console.log(canvasStates[roomId])
-      canvasStates[roomId] = canvasObjects["canvasObjects"]
-      console.log("HELLO", canvasStates[roomId])
-      socket.to(roomId).emit('load_canvas', canvasStates[roomId])
-    })
+    // Display the previous chat messages
+    socket.emit('chat-history', chatHistory[roomId] || []);
 
     socket.on('draw', (data) => {
       canvasStates[roomId].push(data);
       socket.to(roomId).emit('draw', data);
     });
 
+
+    // for clearing 
+    socket.on('request-clear', () => {
+      const userIds = rooms[roomId].map(s => s.id); // get current user IDs in room
+      clearVoteSessions[roomId] = {
+        voters: new Set(userIds),
+        voteCount: 1
+      };
+      clearVotes[roomId] = new Set([socket.id]);
+    
+
+      if (userIds.length === 1) {
+        // Auto-clear if only one person
+        canvasStates[roomId] = [];
+        io.to(roomId).emit('clear-canvas');
+        delete clearVoteSessions[roomId];
+        clearVotes[roomId].clear();
+      
+      }else{
+        // Ask others to confirm
+        socket.broadcast.to(roomId).emit('confirm-clear-request');
+        socket.emit('waiting-for-confirmation');
+
+      }
+
+    });
+    
+    
+    socket.on('confirm-clear-vote', (confirmed) => {
+      const session = clearVoteSessions[roomId];
+      if (!session || !session.voters.has(socket.id)) return; // Ignore latecomers
+    
+      if (!confirmed) {
+        io.to(roomId).emit('clear-canceled');
+        delete clearVoteSessions[roomId];
+        clearVotes[roomId].clear();
+        return;
+      }
+    
+      clearVotes[roomId].add(socket.id);
+      session.voteCount = clearVotes[roomId].size;
+    
+      io.to(roomId).emit('clear-vote-update', {
+        totalVotes: session.voteCount,
+        totalUsers: session.voters.size
+      });
+    
+      if (session.voteCount === session.voters.size) {
+        canvasStates[roomId] = [];
+        io.to(roomId).emit('clear-canvas');
+        delete clearVoteSessions[roomId];
+        clearVotes[roomId].clear();
+      }
+    });
+    
+    
+    socket.on('cancel-clear-vote', () => {
+      clearVotes[roomId].delete(socket.user.username);
+      const votes = clearVotes[roomId].size;
+      const totalUsers = rooms[roomId].length;
+      io.to(roomId).emit('clear-vote-update', { totalVotes: votes, totalUsers });
+    });
+
+    if (clearVoteSessions[roomId]) {
+      io.to(roomId).emit('clear-canceled');
+      delete clearVoteSessions[roomId];
+      clearVotes[roomId].clear();
+    }
+    
+   
+  
     socket.on('disconnect', () => {
       if (!rooms[roomId]) return;
-    
+
       // Remove user from room
       rooms[roomId] = rooms[roomId].filter(u => u.id !== socket.id);
       io.to(roomId).emit('room-users', rooms[roomId]);
-    
+
       // If room is empty, clean up
       if (rooms[roomId].length === 0) {
         delete rooms[roomId];
         delete canvasStates[roomId];
-    
+        delete clearVotes[roomId];
+        delete chatHistory[roomId];
+
+
         if (roomId.startsWith('public_')) {
           const index = publicRooms.indexOf(roomId);
           if (index !== -1) publicRooms.splice(index, 1);
@@ -252,12 +323,70 @@ io.on('connection', (socket) => {
           const pin = roomId.split('_')[1];
           delete privateRooms[pin];
         }
-    
         console.log(`Deleted ${roomId}`);
       }
     });
 
+    socket.on('leave-room', () => {
+      const roomEntry = Object.entries(rooms).find(([roomId, users]) => 
+        users.some(u => u.id === socket.id)
+      );
+
+      if (roomEntry) {
+        const [roomId, users] = roomEntry;
+        
+        // Remove user from room
+        rooms[roomId] = users.filter(u => u.id !== socket.id);
+        socket.leave(roomId);
+        
+        // Notify remaining users
+        io.to(roomId).emit('room-users', rooms[roomId]);
+        
+        // Clean up if room is empty
+        if (rooms[roomId].length === 0) {
+          delete rooms[roomId];
+          delete canvasStates[roomId];
+          delete clearVotes[roomId];
+          delete chatHistory[roomId];
+
+          if (roomId.startsWith('public_')) {
+            const index = publicRooms.indexOf(roomId);
+            if (index !== -1) publicRooms.splice(index, 1);
+          } else if (roomId.startsWith('private_')) {
+            const pin = roomId.split('_')[1];
+            delete privateRooms[pin];
+          }
+        }
+        console.log(`Deleted ${roomId}`);
+      }
+    });
+
+
     
+      
+    // Chat message sent
+    socket.on('chat-message', (message) => {
+      const username = socket.user.username;
+      const userRoom = Object.entries(rooms).find(([roomId, users]) =>
+        users.some(u => u.id === socket.id)
+      );
+      if (userRoom) {
+        const roomId = userRoom[0];
+        const chatEntry = { username, message };
+
+        chatHistory[roomId] = chatHistory[roomId] || [];
+
+        // Only store the latest 20 chats
+        chatHistory[roomId].push(chatEntry);
+        if (chatHistory[roomId].length > 20) {
+          chatHistory[roomId].shift();
+        }
+
+        io.to(roomId).emit('chat-message', chatEntry);
+      }
+    });
+    
+
   });
 });
 
@@ -267,6 +396,11 @@ const canvasSchema = new mongoose.Schema({
 });
 
 const Canvas = mongoose.model('Canvas', canvasSchema);
+
+// Logout
+app.post('/api/logout', (req, res) => {
+  res.json({ success: true });
+});
 
 // Save canvas (POST)
 app.post('/api/canvas', async (req, res) => {
@@ -281,16 +415,16 @@ app.get('/api/canvas/:id', async (req, res) => {
     const canvas = await Canvas.findById(req.params.id);
     if (!canvas) return res.status(404).json({ error: 'Canvas not found' });
     res.json({ data: canvas.data });
-  } catch (err) {
+  } catch (error) {
     res.status(400).json({ error: 'Invalid ID format' });
   }
 });
 
 server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
-mongoose.connect('mongodb://localhost:27017/drawapp', { 
-    useNewUrlParser: true,
-    useUnifiedTopology: true}
-  ).then(() => {
-    console.log('MongoDB connected');
-    app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+
+mongoose.connect('mongodb://localhost:27017/drawapp').then(() => {
+  console.log('MongoDB connected');
+  //app.listen(3000, () => console.log('Server running on http://localhost:3000'));
 });
+
+
