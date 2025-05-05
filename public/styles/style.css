@@ -208,6 +208,64 @@ body {
 }
 
 
+
+/* Logout and quit buttons*/
+.sidebar-button {
+  width: 100%;
+  padding: 6px 8px;
+  margin: 5px 0;
+  background-color: #2d2d2e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Figtree', sans-serif;
+  transition: background 0.2s ease;
+
+}
+
+.sidebar-button:hover {
+  background-color: #444;
+}
+
+.sidebar-buttons-container {
+  display: flex;
+  gap: 6px; 
+  padding-top: 2px;
+  justify-content: center; 
+}
+
+@media (max-width: 1200px) {
+  #toolbar {
+    position: fixed;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    width: calc(100% - 280px); /* 240px sidebar + 20px left padding + 20px right spacing */
+    padding: 12px 16px;
+    flex-wrap: nowrap; 
+    overflow-x: auto; /* Enable horizontal scrolling */
+    overflow-y: hidden; /* Hide vertical scroll */
+    white-space: nowrap; /* Keep buttons in one line */
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+    display: flex;
+    gap: 12px;
+
+    height: 60px;
+    align-items: center;
+    
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 30px,
+      black calc(100% - 30px),
+      transparent 100%
+    );
+  }
+
+}
+
 /* Resize for mobile */
 @media (max-width: 800px) {
 
@@ -282,31 +340,7 @@ body {
 
 
   #toolbar {
-    position: fixed;
-    top: 5px;
-    left: 5px;
-    right: 5px;
     width: auto;
-    padding: 12px 16px;
-    flex-wrap: nowrap; 
-    overflow-x: auto; /* Enable horizontal scrolling */
-    overflow-y: hidden; /* Hide vertical scroll */
-    white-space: nowrap; /* Keep buttons in one line */
-    scrollbar-width: none; /* Hide scrollbar for Firefox */
-    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
-    display: flex;
-    gap: 12px;
-
-    height: 60px;
-    align-items: center;
-    
-    mask-image: linear-gradient(
-      to right,
-      transparent 0%,
-      black 30px,
-      black calc(100% - 30px),
-      transparent 100%
-    );
   }
 
 
@@ -325,7 +359,5 @@ body {
     min-width: max-content;
   }
 
-  
 }
-
 

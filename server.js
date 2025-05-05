@@ -292,6 +292,12 @@ io.on('connection', (socket) => {
       const totalUsers = rooms[roomId].length;
       io.to(roomId).emit('clear-vote-update', { totalVotes: votes, totalUsers });
     });
+
+    if (clearVoteSessions[roomId]) {
+      io.to(roomId).emit('clear-canceled');
+      delete clearVoteSessions[roomId];
+      clearVotes[roomId].clear();
+    }
     
    
   
@@ -322,11 +328,41 @@ io.on('connection', (socket) => {
       }
     });
 
-    if (clearVoteSessions[roomId]) {
-      io.to(roomId).emit('clear-canceled');
-      delete clearVoteSessions[roomId];
-      clearVotes[roomId].clear();
-    }
+    socket.on('leave-room', () => {
+      const roomEntry = Object.entries(rooms).find(([roomId, users]) => 
+        users.some(u => u.id === socket.id)
+      );
+
+      if (roomEntry) {
+        const [roomId, users] = roomEntry;
+        
+        // Remove user from room
+        rooms[roomId] = users.filter(u => u.id !== socket.id);
+        socket.leave(roomId);
+        
+        // Notify remaining users
+        io.to(roomId).emit('room-users', rooms[roomId]);
+        
+        // Clean up if room is empty
+        if (rooms[roomId].length === 0) {
+          delete rooms[roomId];
+          delete canvasStates[roomId];
+          delete clearVotes[roomId];
+          delete chatHistory[roomId];
+
+          if (roomId.startsWith('public_')) {
+            const index = publicRooms.indexOf(roomId);
+            if (index !== -1) publicRooms.splice(index, 1);
+          } else if (roomId.startsWith('private_')) {
+            const pin = roomId.split('_')[1];
+            delete privateRooms[pin];
+          }
+        }
+        console.log(`Deleted ${roomId}`);
+      }
+    });
+
+
     
       
     // Chat message sent
@@ -350,6 +386,7 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('chat-message', chatEntry);
       }
     });
+    
 
   });
 });
@@ -360,6 +397,11 @@ const canvasSchema = new mongoose.Schema({
 });
 
 const Canvas = mongoose.model('Canvas', canvasSchema);
+
+// Logout
+app.post('/api/logout', (req, res) => {
+  res.json({ success: true });
+});
 
 // Save canvas (POST)
 app.post('/api/canvas', async (req, res) => {

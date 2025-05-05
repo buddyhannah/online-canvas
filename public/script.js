@@ -443,3 +443,38 @@ function clearCanvas() {
 }
 
 
+
+// Quit Room button
+document.getElementById('quitRoom').addEventListener('click', () => {
+  if (confirm('Are you sure you want to leave this room?')) {
+    // Tell server we're leaving
+    socket.emit('leave-room');
+    
+    // Redirect to lobby
+    window.location.href = '/lobby.html';
+  }
+});
+
+// Logout button
+document.getElementById('logout').addEventListener('click', async () => {
+  if (confirm('Are you sure you want to logout?')) {
+    try {
+      // Call logout endpoint
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      // Clear local storage and redirect
+      localStorage.removeItem('token');
+      localStorage.removeItem('roomType');
+      localStorage.removeItem('roomPin');
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Logout failed:', err);
+      alert('Logout failed. Please try again.');
+    }
+  }
+});

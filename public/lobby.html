@@ -12,7 +12,10 @@
 </head>
 <body>
     <div class="container">
-        <h1 id="formTitle">Lobby</h1>
+        <div class="logout-container">
+            <button id="lobbyLogout" class="logout-button">Logout</button>
+        </div>
+        <h1 id="welcomeHeader">Lobby</h1>
         <form id="joinForm" onsubmit="return false;">
             <button type="button" onclick="joinPublic()">Join Public Game</button>
             <button type="button" onclick="createPrivate()">Create Private Room</button>
@@ -45,6 +48,49 @@
         alert("Enter a valid PIN");
       }
     }
+
+
+    // Logout functionality
+    document.getElementById('lobbyLogout').addEventListener('click', async () => {
+      try {
+          await fetch('/api/logout', {
+              method: 'POST',
+              headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+          });
+          
+          // Clear all stored data
+          localStorage.removeItem('token');
+          localStorage.removeItem('roomType');
+          localStorage.removeItem('roomPin');
+          
+          // Redirect to login page
+          window.location.href = '/';
+      } catch (err) {
+          console.error('Logout failed:', err);
+          alert('Logout failed. Please try again.');
+      }
+  
+    });
+
+    // Display username on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                // Decode JWT to get username
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const username = payload.username || payload.name;
+                
+                // Update header
+                document.getElementById('welcomeHeader').textContent = `Hello, ${username}`;
+            } catch (e) {
+                console.error('Error decoding token:', e);
+            }
+        }
+    });
+
   </script>
 </body>
 </html>

@@ -13,6 +13,8 @@ body {
   }
   
   .container {
+    position: relative; /* for absolute positioning of logout button */
+    margin-top: 40px;
     max-width: 400px;
     width: 100%;
     padding: 2rem;
@@ -92,6 +94,21 @@ body {
   .private-room-row button {
     flex: 1;
   }
+
+/* for logout button*/
+.logout-container {
+  position: absolute;
+  top:10px;
+  right: 10px;
+}
+
+.logout-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
   
 /* for mobile */
   @media (max-width: 800px) {
@@ -106,6 +123,7 @@ body {
       padding: 1.5rem;
       box-shadow: none;
       border: none;
+      margin-top: 30px;
     }
   
     h1 {
@@ -117,4 +135,18 @@ body {
       font-size: 0.95rem;
       padding: 0.6rem;
     }
+
+
+    .logout-container {
+      top: 5px;
+      right: 5px;
+    }
+    
+    .logout-button {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+  
   }
+
+
